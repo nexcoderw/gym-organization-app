@@ -1,6 +1,15 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	selectOptions,
+	waitFor,
+	within,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PaymentsWorkspace } from '@/components/payments/payments-workspace';
@@ -189,8 +198,10 @@ describe('payments ledger search', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
 		const sheet = screen.getByRole('dialog');
-		fireEvent.click(within(sheet).getByRole('checkbox', { name: 'Basic Plan' }));
-		fireEvent.click(within(sheet).getByRole('checkbox', { name: /Legacy Plan/u }));
+		selectOptions(
+			within(sheet).getByLabelText('Membership plans'),
+			membershipPlans.map((plan) => plan.id),
+		);
 		fireEvent.click(within(sheet).getByRole('button', { name: 'Apply' }));
 
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());

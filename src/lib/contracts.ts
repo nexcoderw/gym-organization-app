@@ -276,11 +276,14 @@ export const membershipPlanInputSchema = z
 	.strict();
 
 export const memberStatusSchema = z.enum(['ACTIVE', 'ARCHIVED']);
+export const memberGenderSchema = z.enum(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']);
 
 export const memberSchema = z.strictObject({
 	id: databaseIdSchema,
 	name: z.string().min(1).max(160),
 	phoneNumber: z.string().min(1).max(40),
+	gender: memberGenderSchema.nullable(),
+	joinedOn: z.iso.date().nullable(),
 	email: z.email().nullable(),
 	status: memberStatusSchema,
 	createdAt: z.iso.datetime(),

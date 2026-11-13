@@ -147,6 +147,34 @@ describe('payment BFF routes', () => {
 		expect(String(fetchMock.mock.calls[0]?.[0])).toContain('search=soho');
 	});
 
+	it('forwards a validated list of membership plan filters', async () => {
+		fetchMock.mockResolvedValueOnce(Response.json({ items: [], nextCursor: null }));
+		const firstPlan = '22222222-2222-4222-8222-222222222222';
+		const secondPlan = '33333333-3333-4333-8333-333333333333';
+		const result = await listPayments(
+			new Request(
+				`https://manager.test/api/payments?membershipPlanIds=${firstPlan},${secondPlan}`,
+			),
+		);
+		expect(result.status).toBe(200);
+		const upstream = new URL(String(fetchMock.mock.calls[0]?.[0]));
+		expect(upstream.searchParams.get('membershipPlanIds')).toBe(`${firstPlan},${secondPlan}`);
+	});
+
+	it('rejects malformed or repeated membership plan filters before upstream work', async () => {
+		const malformed = await listPayments(
+			new Request('https://manager.test/api/payments?membershipPlanIds=invalid'),
+		);
+		const repeated = await listPayments(
+			new Request(
+				`https://manager.test/api/payments?membershipPlanIds=${id},${id}`,
+			),
+		);
+		expect(malformed.status).toBe(400);
+		expect(repeated.status).toBe(400);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
 	it('rejects a search shorter than three characters', async () => {
 		const result = await listPayments(new Request('https://manager.test/api/payments?search=so'));
 		expect(result.status).toBe(400);

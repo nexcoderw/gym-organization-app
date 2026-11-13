@@ -1,6 +1,7 @@
 'use client';
 
 import { Add01Icon } from '@hugeicons/core-free-icons';
+import { useId } from 'react';
 
 import { Button } from '@/components/shared/button';
 import type { MembershipPlan } from '@/lib/contracts';
@@ -24,33 +25,41 @@ export function PaymentPlanFilter({
 	readonly onSelectionChange: (ids: string[]) => void;
 	readonly onLoadMore: () => void;
 }) {
+	const selectId = useId();
+	const hintId = `${selectId}-hint`;
+
 	return (
-		<fieldset className={styles.filters}>
-			<legend>Membership plans</legend>
-			<p>Select one or more plans. Payments matching any selected plan will be shown.</p>
-			<div className={styles.options}>
-				{plans.map((plan) => {
-					const checked = selectedIds.includes(plan.id);
-					return (
-						<label className={styles.option} key={plan.id}>
-							<input
-								type="checkbox"
-								checked={checked}
-								disabled={!checked && selectedIds.length >= 24}
-								onChange={(event) => {
-								onSelectionChange(
-									event.target.checked
-										? [...selectedIds, plan.id]
-										: selectedIds.filter((id) => id !== plan.id),
-								);
-							}}
-							/>
-							<span>{plan.name}</span>
-							{plan.status === 'ARCHIVED' ? <small>Archived</small> : null}
-						</label>
+		<div className={styles.field}>
+			<label htmlFor={selectId}>Membership plans</label>
+			<select
+				id={selectId}
+				className={styles.select}
+				multiple
+				size={Math.min(Math.max(plans.length, 2), 4)}
+				value={[...selectedIds]}
+				aria-describedby={hintId}
+				onChange={(event) => {
+					const selected = Array.from(
+						event.currentTarget.selectedOptions,
+						(option) => option.value,
 					);
-				})}
-			</div>
+					onSelectionChange(selected);
+				}}
+			>
+				{plans.map((plan) => (
+					<option
+						key={plan.id}
+						value={plan.id}
+						disabled={!selectedIds.includes(plan.id) && selectedIds.length >= 24}
+					>
+						{plan.name}{plan.status === 'ARCHIVED' ? ' (Archived)' : ''}
+					</option>
+				))}
+			</select>
+			<p id={hintId} className={styles.hint}>
+				Select up to 24 plans with Ctrl (Windows/Linux) or Command (Mac). Payments matching any
+				selected plan are shown.
+			</p>
 			{unavailable ? (
 				<p className={styles.unavailable} role="status">
 					Additional membership plans could not be loaded.
@@ -68,6 +77,6 @@ export function PaymentPlanFilter({
 					Load more plans
 				</Button>
 			) : null}
-		</fieldset>
+		</div>
 	);
 }

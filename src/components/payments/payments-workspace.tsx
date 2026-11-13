@@ -13,8 +13,10 @@ import { ResultsLoadingState } from '@/components/shared/results-loading-state';
 import { Toast, type ToastNotice } from '@/components/shared/toast';
 import { routes } from '@/constants/routes';
 import {
+	membershipPlanListSchema,
 	paymentListSchema,
 	paymentSchema,
+	type MembershipPlan,
 	type Payment,
 	type PaymentOrder,
 	type RegisterPaymentInput,
@@ -35,11 +37,17 @@ export function PaymentsWorkspace({
 	initialNextCursor,
 	initialErrorStatus,
 	initialToday,
+	initialPlans = [],
+	initialPlanCursor = null,
+	planFilterUnavailable = false,
 }: {
 	readonly initialItems: Payment[];
 	readonly initialNextCursor: string | null;
 	readonly initialErrorStatus: number | null;
 	readonly initialToday: string;
+	readonly initialPlans?: MembershipPlan[];
+	readonly initialPlanCursor?: string | null;
+	readonly planFilterUnavailable?: boolean;
 }) {
 	const [items, setItems] = useState(initialItems);
 	const [nextCursor, setNextCursor] = useState(initialNextCursor);
@@ -53,6 +61,11 @@ export function PaymentsWorkspace({
 	const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [fromDate, setFromDate] = useState('');
 	const [toDate, setToDate] = useState('');
+	const [membershipPlanIds, setMembershipPlanIds] = useState<string[]>([]);
+	const [plans, setPlans] = useState(initialPlans);
+	const [planCursor, setPlanCursor] = useState(initialPlanCursor);
+	const [plansLoading, setPlansLoading] = useState(false);
+	const [planFiltersUnavailable, setPlanFiltersUnavailable] = useState(planFilterUnavailable);
 	const [today, setToday] = useState(initialToday);
 	const [loading, setLoading] = useState<'idle' | 'page' | 'more'>('idle');
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -93,6 +106,7 @@ export function PaymentsWorkspace({
 			order: PaymentOrder;
 			fromDate?: string;
 			toDate?: string;
+			membershipPlanIds?: readonly string[];
 		},
 		append = false,
 		preserveExisting = false,
@@ -115,6 +129,8 @@ export function PaymentsWorkspace({
 		if (next.method !== 'ALL') query.set('method', next.method);
 		if (next.fromDate) query.set('fromDate', next.fromDate);
 		if (next.toDate) query.set('toDate', next.toDate);
+		const selectedPlanIds = next.membershipPlanIds ?? membershipPlanIds;
+		if (selectedPlanIds.length > 0) query.set('membershipPlanIds', selectedPlanIds.join(','));
 		if (append && nextCursor) query.set('cursor', nextCursor);
 		try {
 			const page = await paymentRequest(`${routes.paymentsApi}?${query}`, paymentListSchema, {
@@ -153,7 +169,9 @@ export function PaymentsWorkspace({
 		setOrder(selection.order);
 		setFromDate(selection.fromDate);
 		setToDate(selection.toDate);
-		void load(selection, false, false, appliedSearch.current);
+		const selectedPlanIds = [...selection.membershipPlanIds];
+		setMembershipPlanIds(selectedPlanIds);
+		void load({ ...selection, membershipPlanIds: selectedPlanIds }, false, false, appliedSearch.current);
 	}
 	function changeTerm(value: string) {
 		setTerm(value);
@@ -165,6 +183,33 @@ export function PaymentsWorkspace({
 			appliedSearch.current = search;
 			void load({ status, method, order, fromDate, toDate }, false, false, search);
 		}, 250);
+	}
+
+	async function loadMorePlans() {
+		if (planCursor === null || plansLoading || planFiltersUnavailable) return;
+		setPlansLoading(true);
+		const query = new URLSearchParams({
+			status: 'ALL',
+			order: 'NAME_ASC',
+			limit: '24',
+			cursor: planCursor,
+		});
+		try {
+			const page = await paymentRequest(
+				`${routes.membershipPlansApi}?${query}`,
+				membershipPlanListSchema,
+			);
+			setPlans((current) => [
+				...current,
+				...page.items.filter((plan) => !current.some((known) => known.id === plan.id)),
+			]);
+			setPlanCursor(page.nextCursor);
+		} catch {
+			setPlanFiltersUnavailable(true);
+			notify('Membership plans could not be loaded. Try reopening the filters.', 'error');
+		} finally {
+			setPlansLoading(false);
+		}
 	}
 
 	function changePage(page: number) {
@@ -192,6 +237,7 @@ export function PaymentsWorkspace({
 			setTerm('');
 			setFromDate('');
 			setToDate('');
+			setMembershipPlanIds([]);
 			setItems([created]);
 			setNextCursor(null);
 			setCurrentPage(1);
@@ -202,7 +248,11 @@ export function PaymentsWorkspace({
 					: `Payment ${created.receiptNumber} recorded and confirmed.`,
 				'success',
 			);
-			void load({ status: 'ALL', method: 'ALL', order: 'NEWEST' }, false, true);
+			void load(
+				{ status: 'ALL', method: 'ALL', order: 'NEWEST', membershipPlanIds: [] },
+				false,
+				true,
+			);
 		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : paymentErrorMessage(503);
 			setCreateError(message);
@@ -226,15 +276,23 @@ export function PaymentsWorkspace({
 
 	const showToolbar =
 		items.length > 0 ||
+		plans.length > 0 ||
+		planFiltersUnavailable ||
 		nextCursor !== null ||
 		status !== 'ALL' ||
 		method !== 'ALL' ||
 		order !== 'NEWEST' ||
 		term !== '' ||
 		fromDate !== '' ||
-		toDate !== '';
+		toDate !== '' ||
+		membershipPlanIds.length > 0;
 	const filteredEmpty =
-		status !== 'ALL' || method !== 'ALL' || term.trim() !== '' || fromDate !== '' || toDate !== '';
+		status !== 'ALL' ||
+		method !== 'ALL' ||
+		term.trim() !== '' ||
+		fromDate !== '' ||
+		toDate !== '' ||
+		membershipPlanIds.length > 0;
 	const failure = errorStatus !== null;
 	return (
 		<div className={styles.page}>
@@ -257,6 +315,12 @@ export function PaymentsWorkspace({
 						term={term}
 						fromDate={fromDate}
 						toDate={toDate}
+						membershipPlanIds={membershipPlanIds}
+						plans={plans}
+						planCursor={planCursor}
+						plansLoading={plansLoading}
+						planFilterUnavailable={planFiltersUnavailable}
+						onLoadMorePlans={() => void loadMorePlans()}
 						status={status}
 						method={method}
 						order={order}
@@ -302,9 +366,15 @@ export function PaymentsWorkspace({
 										appliedSearch.current = '';
 										setStatus('ALL');
 										setMethod('ALL');
+										setMembershipPlanIds([]);
 										setFromDate('');
 										setToDate('');
-										void load({ status: 'ALL', method: 'ALL', order }, false, false, '');
+										void load(
+											{ status: 'ALL', method: 'ALL', order, membershipPlanIds: [] },
+											false,
+											false,
+											'',
+										);
 									}}
 								>
 									Clear filters

@@ -18,6 +18,12 @@ export const paymentFiltersSchema = z.strictObject({
 	search: listSearchSchema.optional(),
 	method: paymentMethodSchema.optional(),
 	memberId: databaseIdSchema.optional(),
+	membershipPlanIds: z
+		.array(databaseIdSchema)
+		.min(1)
+		.max(24)
+		.refine((ids) => new Set(ids).size === ids.length)
+		.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
 	fromDate: listDateSchema.optional(),
 	toDate: listDateSchema.optional(),
@@ -34,6 +40,9 @@ export async function listPayments(filters: z.input<typeof paymentFiltersSchema>
 	if (parsed.memberId !== undefined) query.set('memberId', parsed.memberId);
 	if (parsed.fromDate) query.set('fromDate', parsed.fromDate);
 	if (parsed.toDate) query.set('toDate', parsed.toDate);
+	if (parsed.membershipPlanIds !== undefined) {
+		query.set('membershipPlanIds', parsed.membershipPlanIds.join(','));
+	}
 	if (parsed.cursor !== undefined) query.set('cursor', parsed.cursor);
 	try {
 		const result = await upstreamJson(`/owner/payments?${query}`, {}, paymentListSchema);

@@ -152,9 +152,7 @@ describe('payment BFF routes', () => {
 		const firstPlan = '22222222-2222-4222-8222-222222222222';
 		const secondPlan = '33333333-3333-4333-8333-333333333333';
 		const result = await listPayments(
-			new Request(
-				`https://manager.test/api/payments?membershipPlanIds=${firstPlan},${secondPlan}`,
-			),
+			new Request(`https://manager.test/api/payments?membershipPlanIds=${firstPlan},${secondPlan}`),
 		);
 		expect(result.status).toBe(200);
 		const upstream = new URL(String(fetchMock.mock.calls[0]?.[0]));

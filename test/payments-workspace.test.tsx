@@ -6,7 +6,6 @@ import {
 	fireEvent,
 	render,
 	screen,
-	selectOptions,
 	waitFor,
 	within,
 } from '@testing-library/react';
@@ -198,10 +197,12 @@ describe('payments ledger search', () => {
 
 		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
 		const sheet = screen.getByRole('dialog');
-		selectOptions(
-			within(sheet).getByLabelText('Membership plans'),
-			membershipPlans.map((plan) => plan.id),
-		);
+		const planSelect = within(sheet).getByLabelText('Membership plans') as HTMLSelectElement;
+		const selectedPlanIds = new Set(membershipPlans.map((plan) => plan.id));
+		for (const option of Array.from(planSelect.options)) {
+			option.selected = selectedPlanIds.has(option.value);
+		}
+		fireEvent.change(planSelect);
 		fireEvent.click(within(sheet).getByRole('button', { name: 'Apply' }));
 
 		await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());

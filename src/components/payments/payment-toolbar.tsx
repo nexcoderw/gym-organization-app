@@ -187,6 +187,23 @@ export function PaymentToolbar({
 						<option value="AMOUNT_HIGH">Highest amount</option>
 						<option value="AMOUNT_LOW">Lowest amount</option>
 					</Select>
+					{plans.length > 0 ? (
+						<PaymentPlanFilter
+							plans={plans}
+							selectedIds={draftPlanIds}
+							cursor={planCursor}
+							loading={plansLoading}
+							unavailable={planFilterUnavailable}
+							onSelectionChange={(ids) => setDraftPlanIds(ids)}
+							onLoadMore={onLoadMorePlans}
+						/>
+					) : (
+						<p className={styles.planUnavailable} role="status">
+							{planFilterUnavailable
+								? 'Membership plan filters are unavailable for this account.'
+								: 'No membership plans are available to filter.'}
+						</p>
+					)}
 					<Input
 						label="Payments from"
 						icon={Calendar03Icon}
@@ -205,21 +222,6 @@ export function PaymentToolbar({
 						min={draftFromDate || undefined}
 						onChange={(event) => setDraftToDate(event.target.value)}
 					/>
-					{plans.length > 0 ? (
-						<PaymentPlanFilter
-							plans={plans}
-							selectedIds={draftPlanIds}
-							cursor={planCursor}
-							loading={plansLoading}
-							unavailable={planFilterUnavailable}
-							onSelectionChange={(ids) => setDraftPlanIds(ids)}
-							onLoadMore={onLoadMorePlans}
-						/>
-					) : planFilterUnavailable ? (
-						<p className={styles.planUnavailable} role="status">
-							Membership plan filters are unavailable for this account.
-						</p>
-					) : null}
 				</div>
 			</FilterSheet>
 		</FilterToolbar>

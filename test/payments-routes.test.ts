@@ -166,9 +166,7 @@ describe('payment BFF routes', () => {
 			new Request('https://manager.test/api/payments?membershipPlanIds=invalid'),
 		);
 		const repeated = await listPayments(
-			new Request(
-				`https://manager.test/api/payments?membershipPlanIds=${id},${id}`,
-			),
+			new Request(`https://manager.test/api/payments?membershipPlanIds=${id},${id}`),
 		);
 		expect(malformed.status).toBe(400);
 		expect(repeated.status).toBe(400);

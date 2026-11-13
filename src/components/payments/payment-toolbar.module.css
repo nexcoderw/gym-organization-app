@@ -1,19 +1,12 @@
 .filterFields {
 	display: grid;
+	align-items: start;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: var(--space-5) var(--space-4);
 }
 
 .planUnavailable {
-	grid-column: 1 / -1;
 	margin: 0 0 var(--space-3);
 	color: var(--text-secondary);
 	font-size: 0.8125rem;
-}
-
-@media (max-width: 39.99rem) {
-	.filterFields {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
 }

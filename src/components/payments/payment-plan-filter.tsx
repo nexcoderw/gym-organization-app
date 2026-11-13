@@ -52,7 +52,8 @@ export function PaymentPlanFilter({
 						value={plan.id}
 						disabled={!selectedIds.includes(plan.id) && selectedIds.length >= 24}
 					>
-						{plan.name}{plan.status === 'ARCHIVED' ? ' (Archived)' : ''}
+						{plan.name}
+						{plan.status === 'ARCHIVED' ? ' (Archived)' : ''}
 					</option>
 				))}
 			</select>

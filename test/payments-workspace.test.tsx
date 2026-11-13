@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PaymentsWorkspace } from '@/components/payments/payments-workspace';
-import type { Payment } from '@/lib/contracts';
+import type { MembershipPlan, Payment } from '@/lib/contracts';
 
 const payment: Payment = {
 	id: '11111111-1111-4111-8111-111111111111',
@@ -35,6 +35,30 @@ const payment: Payment = {
 };
 
 const fetchMock = vi.fn<typeof fetch>();
+const membershipPlans: MembershipPlan[] = [
+	{
+		id: '44444444-4444-4444-8444-444444444444',
+		name: 'Basic Plan',
+		price: 20_000,
+		currency: 'RWF',
+		description: null,
+		status: 'ACTIVE',
+		createdAt: '2030-01-01T00:00:00.000Z',
+		updatedAt: '2030-01-01T00:00:00.000Z',
+		archivedAt: null,
+	},
+	{
+		id: '55555555-5555-4555-8555-555555555555',
+		name: 'Legacy Plan',
+		price: 15_000,
+		currency: 'RWF',
+		description: null,
+		status: 'ARCHIVED',
+		createdAt: '2029-01-01T00:00:00.000Z',
+		updatedAt: '2030-01-01T00:00:00.000Z',
+		archivedAt: '2030-01-01T00:00:00.000Z',
+	},
+];
 const showModalDescriptor = Object.getOwnPropertyDescriptor(
 	HTMLDialogElement.prototype,
 	'showModal',
@@ -149,6 +173,31 @@ describe('payments ledger search', () => {
 		expect(String(request)).toContain('order=AMOUNT_HIGH');
 		expect(String(request)).toContain('fromDate=2030-01-01');
 		expect(String(request)).toContain('toDate=2030-01-01');
+	});
+
+	it('filters by multiple plans in one request and includes archived plan choices', async () => {
+		fetchMock.mockResolvedValue(Response.json({ items: [], nextCursor: null }));
+		render(
+			<PaymentsWorkspace
+				initialItems={[payment]}
+				initialNextCursor={null}
+				initialErrorStatus={null}
+				initialToday="2030-01-21"
+				initialPlans={membershipPlans}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+		const sheet = screen.getByRole('dialog');
+		fireEvent.click(within(sheet).getByRole('checkbox', { name: 'Basic Plan' }));
+		fireEvent.click(within(sheet).getByRole('checkbox', { name: /Legacy Plan/u }));
+		fireEvent.click(within(sheet).getByRole('button', { name: 'Apply' }));
+
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+		const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]), 'https://manager.test');
+		expect(requestUrl.searchParams.get('membershipPlanIds')).toBe(
+			membershipPlans.map((plan) => plan.id).join(','),
+		);
 	});
 
 	it('shows subscription days and places the receipt action last', () => {

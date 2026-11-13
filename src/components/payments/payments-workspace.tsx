@@ -545,9 +545,8 @@ export function PaymentsWorkspace({
 							<div key={allocation.subscriptionId}>
 								<dt>Allocated to</dt>
 								<dd>
-									{allocation.planName} ·{' '}
-									{new Intl.NumberFormat('en-RW').format(allocation.amount)} RWF ·{' '}
-									{allocation.startDate} to {allocation.endDate} (inclusive)
+									{allocation.planName} · {new Intl.NumberFormat('en-RW').format(allocation.amount)}{' '}
+									RWF · {allocation.startDate} to {allocation.endDate} (inclusive)
 								</dd>
 							</div>
 						))}

@@ -30,6 +30,8 @@ const activeMember: Member = {
 	id: '11111111-1111-4111-8111-111111111111',
 	name: 'Example Active Member',
 	phoneNumber: '+250 700 000 001',
+	gender: null,
+	joinedOn: null,
 	email: null,
 	status: 'ACTIVE',
 	createdAt: '2030-01-01T08:00:00.000Z',

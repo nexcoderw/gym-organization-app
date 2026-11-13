@@ -22,6 +22,17 @@ const querySchema = z.strictObject({
 	search: listSearchSchema.optional(),
 	method: paymentMethodSchema.optional(),
 	memberId: databaseIdSchema.optional(),
+	membershipPlanIds: z
+		.string()
+		.transform((value) => value.split(',').map((id) => id.trim()))
+		.pipe(
+			z
+				.array(databaseIdSchema)
+				.min(1)
+				.max(24)
+				.refine((ids) => new Set(ids).size === ids.length),
+		)
+		.optional(),
 	order: paymentOrderSchema.default('NEWEST'),
 	fromDate: listDateSchema.optional(),
 	toDate: listDateSchema.optional(),

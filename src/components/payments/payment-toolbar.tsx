@@ -16,11 +16,13 @@ import {
 	paymentMethodSchema,
 	paymentOrderSchema,
 	paymentStatusSchema,
+	type MembershipPlan,
 	type PaymentMethod,
 	type PaymentOrder,
 	type PaymentStatus,
 } from '@/lib/contracts';
 
+import { PaymentPlanFilter } from './payment-plan-filter';
 import styles from './payment-toolbar.module.css';
 
 export type PaymentStatusFilter = PaymentStatus | 'ALL';
@@ -32,6 +34,7 @@ export interface PaymentFilterSelection {
 	readonly order: PaymentOrder;
 	readonly fromDate: string;
 	readonly toDate: string;
+	readonly membershipPlanIds: readonly string[];
 }
 
 export function PaymentToolbar({
@@ -40,6 +43,12 @@ export function PaymentToolbar({
 	term,
 	fromDate,
 	toDate,
+	membershipPlanIds,
+	plans,
+	planCursor,
+	plansLoading,
+	planFilterUnavailable,
+	onLoadMorePlans,
 	status,
 	method,
 	order,
@@ -51,6 +60,12 @@ export function PaymentToolbar({
 	readonly term: string;
 	readonly fromDate: string;
 	readonly toDate: string;
+	readonly membershipPlanIds: readonly string[];
+	readonly plans: readonly MembershipPlan[];
+	readonly planCursor: string | null;
+	readonly plansLoading: boolean;
+	readonly planFilterUnavailable: boolean;
+	readonly onLoadMorePlans: () => void;
 	readonly status: PaymentStatusFilter;
 	readonly method: PaymentMethodFilter;
 	readonly order: PaymentOrder;
@@ -63,13 +78,16 @@ export function PaymentToolbar({
 	const [draftOrder, setDraftOrder] = useState(order);
 	const [draftFromDate, setDraftFromDate] = useState(fromDate);
 	const [draftToDate, setDraftToDate] = useState(toDate);
+	const [draftPlanIds, setDraftPlanIds] = useState<string[]>([...membershipPlanIds]);
 	const datesInvalid = draftFromDate !== '' && draftToDate !== '' && draftFromDate > draftToDate;
 	const filtersChanged =
 		draftStatus !== status ||
 		draftMethod !== method ||
 		draftOrder !== order ||
 		draftFromDate !== fromDate ||
-		draftToDate !== toDate;
+		draftToDate !== toDate ||
+		draftPlanIds.length !== membershipPlanIds.length ||
+		!draftPlanIds.every((id) => membershipPlanIds.includes(id));
 
 	function openFilters() {
 		setDraftStatus(status);
@@ -77,6 +95,7 @@ export function PaymentToolbar({
 		setDraftOrder(order);
 		setDraftFromDate(fromDate);
 		setDraftToDate(toDate);
+		setDraftPlanIds([...membershipPlanIds]);
 		setFiltersOpen(true);
 	}
 
@@ -87,6 +106,7 @@ export function PaymentToolbar({
 			order: draftOrder,
 			fromDate: draftFromDate,
 			toDate: draftToDate,
+			membershipPlanIds: draftPlanIds,
 		});
 		setFiltersOpen(false);
 	}
@@ -105,7 +125,7 @@ export function PaymentToolbar({
 			<FilterSheet
 				open={filtersOpen}
 				title="Filter payments"
-				description="Choose which payments to show and how to order them."
+				description="Choose one or more plans, payment details and a date range. Matching payments include any selected plan."
 				applyDisabled={!filtersChanged || datesInvalid}
 				onClose={() => setFiltersOpen(false)}
 				onApply={applyFilters}
@@ -185,6 +205,21 @@ export function PaymentToolbar({
 						min={draftFromDate || undefined}
 						onChange={(event) => setDraftToDate(event.target.value)}
 					/>
+					{plans.length > 0 ? (
+						<PaymentPlanFilter
+							plans={plans}
+							selectedIds={draftPlanIds}
+							cursor={planCursor}
+							loading={plansLoading}
+							unavailable={planFilterUnavailable}
+							onSelectionChange={(ids) => setDraftPlanIds(ids)}
+							onLoadMore={onLoadMorePlans}
+						/>
+					) : planFilterUnavailable ? (
+						<p className={styles.planUnavailable} role="status">
+							Membership plan filters are unavailable for this account.
+						</p>
+					) : null}
 				</div>
 			</FilterSheet>
 		</FilterToolbar>

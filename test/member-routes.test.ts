@@ -19,6 +19,8 @@ const member = {
 	id,
 	name: 'Example Member',
 	phoneNumber: '+250700000001',
+	gender: null,
+	joinedOn: null,
 	email: null,
 	status: 'ACTIVE',
 	createdAt: date,

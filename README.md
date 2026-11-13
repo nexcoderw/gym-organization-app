@@ -30,8 +30,9 @@ transaction dates can be filtered by inclusive Africa/Kigali calendar days. Sear
 loaded in the manager; visit another page to search its members. Server-side filters and ordering apply
 to the full matching gym dataset before each page is returned.
 
-The Payments workspace lists gym-scoped ledger entries with status, method, date and order filters,
-searches by member, receipt or provider reference, and opens read-only details.
+The Payments workspace lists gym-scoped ledger entries with status, method, membership-plan, date and
+order filters, searches by member, receipt or provider reference, and opens read-only details. Selecting
+multiple plans matches payments allocated to any selected plan, including archived plans.
 The New payment form accepts a new or existing member, active plan, start date, duration, method,
 provider reference when required and optional note. Nest calculates the inclusive end date and
 snapshots the plan's full price. `POST /api/payments/registrations` validates exact Origin, owner
